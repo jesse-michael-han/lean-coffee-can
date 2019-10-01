@@ -1,0 +1,13 @@
+* lean-coffee-can
+
+A simplified version of the Coffee Can Problem, from David Gries' /The Science of Programming/.
+
+Build instructions:
+
+#+begin_src bash
+git clone https://github.com/jesse-michael-han/lean-coffee-can
+
+cd lean-coffee-can
+
+leanpkg configure && leanpkg build
+#+end_src
