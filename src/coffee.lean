@@ -4,6 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author(s): Jesse Michael Han 
 
 A simplified version of the coffee can problem, from David Gries' The Science of Programming
+
+Given a coffee can filled with finitely many black and white beans, and an infinite supply of white beans, carry out the following procedure: as long as there is more than one bean in the can,
+
+ - Draw two beans.
+ - If their colors are different, discard the white one and return the black one to the can.
+ - If their colors are the same, discard both of them and add a white bean to the can.
+
+Prove that if the number of black beans in the can is odd, then the process always ends with a black bean, and that if the number of black beans in the can is even, then the process always ends with a white bean.
 -/
 
 import tactic
