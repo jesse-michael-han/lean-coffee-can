@@ -17,7 +17,7 @@ Prove that if the number of black beans in the can is odd, then the process alwa
 import tactic
 import data.nat.parity
 
-@[derive decidable_eq]
+@[derive decidable_eq, derive has_reflect]
 inductive beans : Type
 | white : beans
 | black : beans
@@ -41,11 +41,7 @@ open beans
 begin
   induction xs with x_hd x_tl ih,
     { refl },
-    { by_cases x_hd = black,
-      { subst h, simp [ih.symm] },
-      { cases x_hd,
-        { simp [ih.symm] },
-        { exfalso, from h rfl }}}
+    { cases x_hd; simp [ih.symm] }
 end
 
 def coffee : list beans → list beans
@@ -89,9 +85,37 @@ meta def coffee_eval : list beans → tactic unit
      tactic.trace "got white + white, discarding white",
      coffee_eval (white::xs)
 
+@[reducible]meta def my_parser := state_t string tactic
+
+meta def beans.of_string : my_parser beans :=
+⟨ λ ⟨cs⟩, match cs with
+         | [] := tactic.failed
+         | (x::xs) := if x = '0' then return (white, ⟨xs⟩) else
+                      if x = '1' then return (black, ⟨xs⟩) else
+                      tactic.failed
+         end ⟩
+
+meta def repeat {α} : my_parser α → my_parser (list α) :=
+λ p, (list.cons) <$> p <*> (repeat p <|> return [])
+
+meta def my_parser.run {α} [has_to_tactic_format α] (p : my_parser α) (arg : string) : tactic α :=
+do bs <- prod.fst <$> state_t.run p arg,
+   tactic.trace bs,
+   return bs
+
+meta def parse_beans (arg : string) : tactic unit :=
+do bs <- my_parser.run (repeat beans.of_string) arg,
+   tactic.exact `(bs).to_expr
+
 end metaprogramming
 
-run_cmd coffee_eval some_beans
+section test
+
+def some_more_beans : list beans := by {parse_beans "10110001011"}
+
+run_cmd coffee_eval some_more_beans
+
+end test
 
 @[simp]lemma coffee_white {x} {xs} : coffee (white::x::xs) = coffee (x::xs) :=
 begin
@@ -118,18 +142,20 @@ begin
     { cases xs with y xs,
       { simp [coffee] },
       { cases x; cases y,
-          { simp [coffee] with parity_simps, rw ← IH (xs.length + 1) (by norm_num*),
+          { simp [coffee] with parity_simps,
+            rw ← IH (xs.length + 1) (by norm_num*),
             { simp },
             { refl }},
           { simp [coffee], rw ← IH (xs.length + 1) (by norm_num*),
             { simp },
-            { refl } },
+            { refl }},
           { simp [coffee], rw ← IH (xs.length + 1) (by norm_num*),
             { simp },
-            { refl } },
-          { simp [coffee] with parity_simps, rw ← IH (xs.length + 1) (by norm_num*),
+            { refl }},
+          { simp [coffee] with parity_simps,
+            rw ← IH (xs.length + 1) (by norm_num*),
             { simp },
-            { refl } }}}
+            { refl }}}}
 end
 
 lemma coffee_parity {xs : list beans} : even (count_black xs) ↔ even (count_black (coffee xs)) :=
